@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Files &amp; Folders Video Quiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Layout: video on top, a timeline of question "tabs" under it, and each question pops up as a manila folder over the paused video. */
+:root {
+  --bg: #eef2f7;
+  --surface: #ffffff;
+  --ink: #1d2a44;
+  --muted: #5b6782;
+  --line: #d5dce8;
+  --manila: #f2cf74;
+  --manila-deep: #dcae3f;
+  --file: #2f6fde;
+  --good: #1f9d63;
+  --bad: #d4483b;
+  --display: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121826; --surface: #1b2335; --ink: #e9eef8; --muted: #9aa6bf; --line: #2c3650;
+    --manila: #e2bd5c; --manila-deep: #b98e2a; --file: #6b9cf2; --good: #3cc489; --bad: #f06b5e;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink); font: 18px/1.5 var(--body);
+  padding: 24px max(16px, env(safe-area-inset-left, 0px)) 40px max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 960px; margin: 0 auto; display: grid; gap: 18px; }
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; }
+h1 { font: 700 clamp(28px, 4.5vw, 44px)/1.05 var(--display); margin: 0; text-wrap: balance; }
+.sub { color: var(--muted); margin: 4px 0 0; }
+.score {
+  font: 600 20px var(--display); background: var(--surface); border: 2px solid var(--line);
+  border-radius: 999px; padding: 6px 16px; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.stage { position: relative; border-radius: 14px; overflow: hidden; background: #000; aspect-ratio: 16 / 9; max-width: 100%; }
+#player, .stage iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+/* Timeline of question tabs */
+.timeline { position: relative; height: 34px; }
+.track { position: absolute; left: 0; right: 0; top: 15px; height: 4px; border-radius: 4px; background: var(--line); }
+.progress { position: absolute; left: 0; top: 15px; height: 4px; border-radius: 4px; background: var(--file); width: 0; }
+.tick {
+  position: absolute; top: 4px; transform: translateX(-50%); width: 26px; height: 26px; border-radius: 6px 6px 3px 3px;
+  background: var(--manila); border: 2px solid var(--manila-deep); color: #3a2a05;
+  font: 600 13px/22px var(--display); text-align: center; font-variant-numeric: tabular-nums;
+}
+.tick.right { background: var(--good); border-color: var(--good); color: #fff; }
+.tick.wrong { background: var(--bad); border-color: var(--bad); color: #fff; }
+
+/* The question folder */
+.overlay {
+  position: absolute; inset: 0; display: grid; place-items: center; padding: 14px;
+  background: rgba(10, 16, 30, .62); backdrop-filter: blur(3px);
+}
+.folder { width: min(100%, 720px); max-height: 100%; display: flex; flex-direction: column; }
+.folder-tab {
+  align-self: flex-start; background: var(--manila); color: #3a2a05; font: 600 15px var(--display);
+  padding: 6px 18px 4px; border-radius: 10px 10px 0 0; letter-spacing: .03em; font-variant-numeric: tabular-nums;
+}
+.folder-body {
+  background: var(--manila); color: #22190a; border-radius: 0 12px 12px 12px; padding: clamp(14px, 3vw, 26px);
+  overflow-y: auto; display: grid; gap: 14px; box-shadow: 0 18px 40px rgba(0,0,0,.35);
+}
+.q { font: 600 clamp(20px, 3.2vw, 30px)/1.2 var(--display); margin: 0; text-wrap: balance; }
+.options { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.opt {
+  font: 700 clamp(16px, 2.2vw, 20px)/1.3 var(--body); text-align: left; cursor: pointer;
+  background: #fffaf0; color: #22190a; border: 2px solid var(--manila-deep); border-radius: 10px; padding: 12px 14px;
+  display: flex; gap: 10px; align-items: baseline;
+}
+.opt b { font-family: var(--display); color: #8a6512; }
+.opt:hover:not(:disabled) { border-color: #22190a; }
+.opt:focus-visible, .btn:focus-visible { outline: 3px solid var(--file); outline-offset: 2px; }
+.opt:disabled { cursor: default; opacity: .55; }
+.opt.is-right { background: #d9f5e6; border-color: #1f9d63; opacity: 1; }
+.opt.is-wrong { background: #fbe0dc; border-color: #d4483b; opacity: 1; }
+.feedback { margin: 0; font-weight: 700; }
+.feedback.ok { color: #13703f; }
+.feedback.no { color: #a8281c; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
+.btn {
+  font: 600 18px var(--display); border: 0; border-radius: 10px; padding: 10px 20px; cursor: pointer;
+  background: var(--ink); color: var(--surface);
+}
+.btn.ghost { background: transparent; color: inherit; border: 2px solid currentColor; }
+.folder .btn { background: #22190a; color: #fffaf0; }
+.folder .btn.ghost { background: transparent; color: #22190a; }
+
+.start { text-align: center; color: #fff; display: grid; gap: 14px; justify-items: center; }
+.start h2 { font: 700 clamp(24px, 4vw, 38px) var(--display); margin: 0; }
+.start p { margin: 0; max-width: 46ch; }
+.start .btn { background: var(--manila); color: #22190a; font-size: 22px; padding: 12px 28px; }
+
+.results { background: var(--surface); border: 2px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 12px; }
+.results h2 { font: 700 28px var(--display); margin: 0; }
+.results ol { margin: 0; padding-left: 1.4em; display: grid; gap: 6px; }
+.results li span { color: var(--muted); }
+.mark-r { color: var(--good); font-weight: 700; }
+.mark-w { color: var(--bad); font-weight: 700; }
+.note { color: var(--muted); font-size: 15px; margin: 0; }
+.note a { color: var(--file); }
+.err { color: #fff; text-align: center; display: grid; gap: 10px; justify-items: center; }
+.err a { color: var(--manila); }
+@media (prefers-reduced-motion: no-preference) {
+  .folder { animation: pop .28s ease-out; }
+  @keyframes pop { from { transform: translateY(14px) scale(.97); opacity: .2; } }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Files &amp; Folders</h1>
+      <p class="sub">Watch the video. It pauses for 10 questions along the way.</p>
+    </div>
+    <div class="score" id="score">Score 0 / 10</div>
+  </header>
+
+  <div class="stage" id="stage">
+    <div id="player"></div>
+    <div class="overlay" id="startOverlay">
+      <div class="start">
+        <h2>Ready?</h2>
+        <p>The video will stop at each folder on the timeline. Pick an answer to keep watching.</p>
+        <button class="btn" id="startBtn">Start the video</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="timeline" aria-hidden="true">
+    <div class="track"></div>
+    <div class="progress" id="progress"></div>
+    <div id="ticks"></div>
+  </div>
+
+  <section class="results" id="results" hidden></section>
+
+  <p class="note">Video: “Files and Folders” by Tech with Ba on <a href="https://www.youtube.com/watch?v=6lgJGjBEJ1g" target="_blank" rel="noopener">YouTube</a>.</p>
+</div>
+
+<script>
+const VIDEO_ID = "6lgJGjBEJ1g";
+const QUESTIONS = [
+  { t: 10, q: "What is today's lesson about?",
+    o: ["Files and folders", "Typing fast", "Drawing pictures", "Playing games"], a: 0,
+    why: "The teacher says, “Today's lesson is about files and folders.”" },
+  { t: 16, q: "What is a file?",
+    o: ["A part of the keyboard", "Something saved on a computer", "A type of computer", "A website"], a: 1,
+    why: "A file is something saved on a computer." },
+  { t: 20, q: "Which of these was given as an example of a file?",
+    o: ["A mouse", "A monitor", "A picture you save", "A charger"], a: 2,
+    why: "A picture you save is a file. A mouse and monitor are hardware, not files." },
+  { t: 25, q: "A document you type and a ______ can also be files.",
+    o: ["Desk", "Video", "Printer", "Cable"], a: 1,
+    why: "The video says a document you type is a file, and a video can also be a file." },
+  { t: 33, q: "What is a folder?",
+    o: ["A place where we keep our files", "A program for typing", "A kind of picture", "A computer screen"], a: 0,
+    why: "A folder is where we keep our files." },
+  { t: 41, q: "What does the video compare a folder to?",
+    o: ["A lunch box", "A bookshelf", "A school bag", "A pencil case"], a: 2,
+    why: "Like a school bag holds books, pencils and notebooks, a folder holds files." },
+  { t: 48, q: "Folders help us keep our files…",
+    o: ["Hidden and secret", "Neat and organized", "Small and fast", "Colourful"], a: 1,
+    why: "Folders help us keep our files neat and organized." },
+  { t: 57, q: "Which folder was NOT one of the examples in the video?",
+    o: ["Pictures", "Homework", "Videos", "Music"], a: 3,
+    why: "The examples were a folder for pictures, one for homework and one for videos." },
+  { t: 71, q: "Why is it good to put files into different folders?",
+    o: ["It makes the computer louder", "It deletes old files", "It makes files easy to find", "It makes files bigger"], a: 2,
+    why: "Sorting files into folders makes it easy to find your files." },
+  { t: 95, q: "What will the next lesson teach?",
+    o: ["How to create a folder", "How to delete a file", "How to draw a picture", "How to send an email"], a: 0,
+    why: "“In our next lesson, we will learn how to create a folder on a computer.”" }
+];
+const DURATION_FALLBACK = 100;
+
+const state = { next: 0, score: 0, answers: [], open: false, player: null, timer: null };
+const $ = id => document.getElementById(id);
+const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+
+function drawTicks(duration) {
+  $("ticks").innerHTML = QUESTIONS.map((q, i) =>
+    `<div class="tick" id="tick${i}" style="left:${(q.t / duration) * 100}%">${i + 1}</div>`).join("");
+}
+drawTicks(DURATION_FALLBACK);
+
+function updateScore() { $("score").textContent = `Score ${state.score} / ${QUESTIONS.length}`; }
+
+function showQuestion(i) {
+  state.open = true;
+  const q = QUESTIONS[i];
+  const ov = document.createElement("div");
+  ov.className = "overlay"; ov.id = "qOverlay";
+  ov.innerHTML = `
+    <div class="folder" role="dialog" aria-modal="true" aria-labelledby="qText">
+      <div class="folder-tab">Question ${i + 1} of ${QUESTIONS.length} · ${fmt(q.t)}</div>
+      <div class="folder-body">
+        <p class="q" id="qText">${q.q}</p>
+        <div class="options">${q.o.map((o, k) =>
+          `<button class="opt" data-k="${k}"><b>${"ABCD"[k]}</b><span>${o}</span></button>`).join("")}</div>
+        <p class="feedback" id="fb" hidden></p>
+        <div class="row" id="actions" hidden>
+          <button class="btn ghost" id="rewatch">Rewatch this part</button>
+          <button class="btn" id="cont">Keep watching</button>
+        </div>
+      </div>
+    </div>`;
+  $("stage").appendChild(ov);
+  ov.querySelector(".opt").focus();
+  ov.querySelectorAll(".opt").forEach(b => b.addEventListener("click", () => answer(i, +b.dataset.k)));
+}
+
+function answer(i, k) {
+  const q = QUESTIONS[i], right = k === q.a;
+  if (right) state.score++;
+  state.answers[i] = k;
+  updateScore();
+  const ov = $("qOverlay");
+  ov.querySelectorAll(".opt").forEach(b => {
+    b.disabled = true;
+    const bk = +b.dataset.k;
+    if (bk === q.a) b.classList.add("is-right");
+    else if (bk === k) b.classList.add("is-wrong");
+  });
+  const fb = $("fb");
+  fb.hidden = false;
+  fb.className = "feedback " + (right ? "ok" : "no");
+  fb.textContent = (right ? "Correct! " : "Not quite. ") + q.why;
+  $("tick" + i).classList.add(right ? "right" : "wrong");
+  $("actions").hidden = false;
+  if (i === QUESTIONS.length - 1) $("cont").textContent = "See my results";
+  $("cont").focus();
+  $("cont").onclick = () => close(i, false);
+  $("rewatch").onclick = () => close(i, true);
+}
+
+function close(i, rewatch) {
+  $("qOverlay").remove();
+  state.open = false;
+  state.next = i + 1;
+  if (rewatch && state.player) {
+    const back = i === 0 ? 0 : QUESTIONS[i - 1].t;
+    state.player.seekTo(back, true);
+  }
+  if (state.player) state.player.playVideo();
+  if (state.next >= QUESTIONS.length && !rewatch) showResults();
+}
+
+function showResults() {
+  const r = $("results");
+  const pct = Math.round((state.score / QUESTIONS.length) * 100);
+  const msg = pct === 100 ? "Perfect score!" : pct >= 70 ? "Great job!" : "Good try. Watch it again and see if you can beat your score.";
+  r.innerHTML = `
+    <h2>${state.score} out of ${QUESTIONS.length} · ${msg}</h2>
+    <ol>${QUESTIONS.map((q, i) => {
+      const ok = state.answers[i] === q.a;
+      return `<li>${q.q} <span class="${ok ? "mark-r" : "mark-w"}">${ok ? "✓" : "✗"}</span>
+        <span>Answer: ${q.o[q.a]}</span></li>`;
+    }).join("")}</ol>
+    <div class="row" style="justify-content:flex-start"><button class="btn" id="again">Try again</button></div>`;
+  r.hidden = false;
+  r.scrollIntoView({ behavior: "smooth", block: "start" });
+  $("again").onclick = restart;
+}
+
+function restart() {
+  state.next = 0; state.score = 0; state.answers = [];
+  updateScore();
+  $("results").hidden = true;
+  document.querySelectorAll(".tick").forEach(t => t.className = "tick");
+  if (state.player) { state.player.seekTo(0, true); state.player.playVideo(); }
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function tick() {
+  const p = state.player;
+  if (!p || typeof p.getCurrentTime !== "function") return;
+  const now = p.getCurrentTime(), dur = p.getDuration() || DURATION_FALLBACK;
+  $("progress").style.width = Math.min(100, (now / dur) * 100) + "%";
+  if (state.open || state.next >= QUESTIONS.length) return;
+  const q = QUESTIONS[state.next];
+  // Don't let students skip ahead past an unanswered question.
+  if (now >= q.t) {
+    p.pauseVideo();
+    if (now > q.t + 1.5) p.seekTo(q.t, true);
+    showQuestion(state.next);
+  }
+}
+
+function showError() {
+  $("startOverlay").innerHTML = `<div class="err">
+    <h2 style="margin:0;font-family:var(--display)">The video couldn't load here.</h2>
+    <p style="margin:0;max-width:46ch">Open this page from a website or a local web server (not by double-clicking the file), or <a href="https://www.youtube.com/watch?v=${VIDEO_ID}" target="_blank" rel="noopener">watch it on YouTube</a>.</p></div>`;
+  $("startOverlay").hidden = false;
+}
+
+window.onYouTubeIframeAPIReady = function () {
+  state.player = new YT.Player("player", {
+    videoId: VIDEO_ID,
+    playerVars: { rel: 0, modestbranding: 1, playsinline: 1, cc_load_policy: 1,
+      origin: location.origin && location.origin !== "null" ? location.origin : undefined },
+    events: {
+      onReady: e => drawTicks(e.target.getDuration() || DURATION_FALLBACK),
+      onError: showError,
+      onStateChange: e => { if (e.data === YT.PlayerState.ENDED && state.next >= QUESTIONS.length && $("results").hidden) showResults(); }
+    }
+  });
+  state.timer = setInterval(tick, 250);
+};
+
+$("startBtn").addEventListener("click", () => {
+  $("startOverlay").hidden = true;
+  if (state.player && state.player.playVideo) state.player.playVideo();
+});
+
+const s = document.createElement("script");
+s.src = "https://www.youtube.com/iframe_api";
+s.onerror = showError;
+document.head.appendChild(s);
+</script>
+</body>
+</html>
