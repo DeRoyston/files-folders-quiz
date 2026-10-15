@@ -317,7 +317,7 @@ window.onYouTubeIframeAPIReady = function () {
     events: {
       onReady: e => drawTicks(e.target.getDuration() || DURATION_FALLBACK),
       onError: showError,
-      onStateChange: e => { if (e.data === YT.PlayerState.PLAYING) $("startOverlay").hidden = true; if (e.data === YT.PlayerState.ENDED && state.next >= QUESTIONS.length && $("results").hidden) showResults(); }
+      onStateChange: e => { if (e.data === YT.PlayerState.PLAYING) $("startOverlay").hidden = true; if (e.data === YT.PlayerState.ENDED) { if (state.next < QUESTIONS.length && !state.open) showQuestion(state.next); else if (state.next >= QUESTIONS.length && $("results").hidden) showResults(); } }
     }
   });
   state.timer = setInterval(tick, 250);
