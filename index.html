@@ -32,6 +32,7 @@
   }
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { margin: 0; }
 body {
   background: var(--bg); color: var(--ink); font: 18px/1.5 var(--body);
@@ -155,34 +156,34 @@ h1 { font: 700 clamp(28px, 4.5vw, 44px)/1.05 var(--display); margin: 0; text-wra
 <script>
 const VIDEO_ID = "6lgJGjBEJ1g";
 const QUESTIONS = [
-  { t: 10, q: "What is today's lesson about?",
+  { t: 13.0, q: "What is today's lesson about?",
     o: ["Files and folders", "Typing fast", "Drawing pictures", "Playing games"], a: 0,
     why: "The teacher says, “Today's lesson is about files and folders.”" },
-  { t: 16, q: "What is a file?",
+  { t: 18.3, q: "What is a file?",
     o: ["A part of the keyboard", "Something saved on a computer", "A type of computer", "A website"], a: 1,
     why: "A file is something saved on a computer." },
-  { t: 20, q: "Which of these was given as an example of a file?",
+  { t: 21.4, q: "Which of these was given as an example of a file?",
     o: ["A mouse", "A monitor", "A picture you save", "A charger"], a: 2,
     why: "A picture you save is a file. A mouse and monitor are hardware, not files." },
-  { t: 25, q: "A document you type and a ______ can also be files.",
+  { t: 26.5, q: "A document you type and a ______ can also be files.",
     o: ["Desk", "Video", "Printer", "Cable"], a: 1,
     why: "The video says a document you type is a file, and a video can also be a file." },
-  { t: 33, q: "What is a folder?",
+  { t: 36.3, q: "What is a folder?",
     o: ["A place where we keep our files", "A program for typing", "A kind of picture", "A computer screen"], a: 0,
     why: "A folder is where we keep our files." },
-  { t: 41, q: "What does the video compare a folder to?",
+  { t: 47.8, q: "What does the video compare a folder to?",
     o: ["A lunch box", "A bookshelf", "A school bag", "A pencil case"], a: 2,
     why: "Like a school bag holds books, pencils and notebooks, a folder holds files." },
-  { t: 48, q: "Folders help us keep our files…",
+  { t: 51.4, q: "Folders help us keep our files…",
     o: ["Hidden and secret", "Neat and organized", "Small and fast", "Colourful"], a: 1,
     why: "Folders help us keep our files neat and organized." },
-  { t: 57, q: "Which folder was NOT one of the examples in the video?",
+  { t: 58.1, q: "Which folder was NOT one of the examples in the video?",
     o: ["Pictures", "Homework", "Videos", "Music"], a: 3,
     why: "The examples were a folder for pictures, one for homework and one for videos." },
-  { t: 71, q: "Why is it good to put files into different folders?",
+  { t: 60.6, q: "Why is it good to put files into different folders?",
     o: ["It makes the computer louder", "It deletes old files", "It makes files easy to find", "It makes files bigger"], a: 2,
     why: "Sorting files into folders makes it easy to find your files." },
-  { t: 95, q: "What will the next lesson teach?",
+  { t: 95.4, q: "What will the next lesson teach?",
     o: ["How to create a folder", "How to delete a file", "How to draw a picture", "How to send an email"], a: 0,
     why: "“In our next lesson, we will learn how to create a folder on a computer.”" }
 ];
@@ -253,7 +254,7 @@ function close(i, rewatch) {
   state.open = false;
   state.next = i + 1;
   if (rewatch && state.player) {
-    const back = i === 0 ? 0 : QUESTIONS[i - 1].t;
+    const back = i === 0 ? 0 : QUESTIONS[i - 1].t + 0.3;
     state.player.seekTo(back, true);
   }
   if (state.player) state.player.playVideo();
@@ -316,7 +317,7 @@ window.onYouTubeIframeAPIReady = function () {
     events: {
       onReady: e => drawTicks(e.target.getDuration() || DURATION_FALLBACK),
       onError: showError,
-      onStateChange: e => { if (e.data === YT.PlayerState.ENDED && state.next >= QUESTIONS.length && $("results").hidden) showResults(); }
+      onStateChange: e => { if (e.data === YT.PlayerState.PLAYING) $("startOverlay").hidden = true; if (e.data === YT.PlayerState.ENDED && state.next >= QUESTIONS.length && $("results").hidden) showResults(); }
     }
   });
   state.timer = setInterval(tick, 250);
